@@ -1,0 +1,151 @@
+// Prisma schema — defines your database tables as TypeScript-friendly models.
+// Prisma reads this file and generates a type-safe client you use in your code.
+// Run `npx prisma migrate dev` to apply changes to your actual database.
+
+generator client {
+  // "prisma-client" is the Prisma 6 generator. It produces a fully typed
+  // client so TypeScript knows the shape of every query result.
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  // Tells Prisma we're using PostgreSQL. The connection string comes from
+  // the DATABASE_URL environment variable so it's never hardcoded.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+// An enum locks a field to a fixed set of values.
+// Using an enum (instead of a plain string) means Prisma and TypeScript will
+// error at compile time if you accidentally write "PLAYIN" instead of "PLAYING".
+enum GameStatus {
+  PLAYING
+  BACKLOG
+  COMPLETED
+  DROPPED
+}
+
+// ---------- Models ----------
+
+model User {
+  id            String    @id @default(cuid())
+  // cuid() generates a collision-resistant unique ID — safer than auto-increment
+  // integers for public-facing IDs (you don't want /users/1, /users/2 enumerable).
+  email         String    @unique
+  name          String?
+  // The ? means this field is optional (nullable in the DB).
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  // emailVerified is required by NextAuth's Prisma adapter.
+  // It gets set when a user verifies their email address.
+  emailVerified DateTime?
+
+  // NextAuth stores one Account per OAuth provider the user has connected.
+  // (e.g. one Account row for Google, another if they later add GitHub)
+  accounts Account[]
+
+  // Our app's data — one User has many backlog entries.
+  games UserGame[]
+}
+
+// Account is a NextAuth-required model.
+// Each row represents one OAuth connection (e.g. "this user connected Google").
+// A user could have multiple accounts if you support multiple providers.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String  // e.g. "google"
+  providerAccountId String  // Google's own ID for this user
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A user can only have one Account per provider.
+  @@unique([provider, providerAccountId])
+}
+
+// VerificationToken is a NextAuth-required model.
+// Used for magic-link / email sign-in flows to store one-time tokens.
+// We're using Google OAuth so this table will be empty, but the adapter requires it.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Game {
+  // Represents a game pulled from the RAWG API and cached in our DB.
+  // We store a local copy so we don't have to hit RAWG on every page load.
+  id          String  @id @default(cuid())
+  rawgId      Int     @unique
+  // rawgId is RAWG's own numeric ID — stored so we can de-duplicate games
+  // (two users adding the same game should reference the same Game row).
+  title       String
+  coverUrl    String?
+  genre       String?
+  releaseYear Int?
+
+  userGames UserGame[]
+}
+
+model UserGame {
+  // Join table between User and Game — represents one game on one user's backlog.
+  // A UserGame row is created when a user adds a game to their list.
+  id      String     @id @default(cuid())
+  userId  String
+  gameId  String
+  status  GameStatus @default(BACKLOG)
+  addedAt DateTime   @default(now())
+
+  // Relations pointing back to the parent rows.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // onDelete: Cascade means if the User is deleted, their UserGame rows go too.
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  // A user can only have a game on their list once.
+  @@unique([userId, gameId])
+
+  // Child rows — one UserGame can have many play sessions and at most one review.
+  sessions PlaySession[]
+  review   Review?
+}
+
+model PlaySession {
+  // A play session — each time a user logs hours for a game.
+  // Named PlaySession (not Session) because NextAuth v5 also uses a "Session"
+  // concept, and having two models named Session causes a conflict.
+  // We use JWT sessions in NextAuth so there's no Session table in the DB,
+  // but the name clash in code would still be confusing.
+  id          String   @id @default(cuid())
+  userGameId  String
+  hoursPlayed Float
+  notes       String?
+  date        DateTime @default(now())
+
+  userGame UserGame @relation(fields: [userGameId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  // A user's written review + score for one of their games.
+  id         String   @id @default(cuid())
+  userGameId String   @unique
+  // @unique here enforces one review per UserGame (one review per user per game).
+  score      Int
+  // Score is 1–10. We'll validate the range in our API layer (Zod), not the DB.
+  body       String
+  createdAt  DateTime @default(now())
+
+  userGame UserGame @relation(fields: [userGameId], references: [id], onDelete: Cascade)
+}
