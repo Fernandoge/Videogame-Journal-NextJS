@@ -7,6 +7,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Image from "next/image";
+import { formatPlayTime } from "@/lib/format";
+import DeleteSessionButton from "@/components/DeleteSessionButton";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -16,7 +18,7 @@ export default async function ProfilePage() {
 
   // Run all queries in parallel with Promise.all — faster than awaiting them
   // one by one because they don't depend on each other.
-  const [statusCounts, hoursResult, sessionCount, recentSessions, recentlyCompleted] =
+  const [statusCounts, hoursResult, sessionCount, recentSessions, recentlyCompleted, reviews] =
     await Promise.all([
 
       // Count how many games the user has in each status bucket.
@@ -52,6 +54,13 @@ export default async function ProfilePage() {
         include: { game: true },
         orderBy: { addedAt: "desc" },
         take: 5,
+      }),
+
+      // All reviews this user has written, newest first.
+      db.review.findMany({
+        where: { userGame: { userId } },
+        include: { userGame: { include: { game: true } } },
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
@@ -90,7 +99,7 @@ export default async function ProfilePage() {
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Total games"     value={totalGames} />
-          <StatCard label="Hours played"    value={Math.round(totalHours * 10) / 10} unit="hrs" />
+          <StatCard label="Hours played"    value={formatPlayTime(totalHours)} />
           <StatCard label="Sessions logged" value={sessionCount} />
           <StatCard label="Completed"       value={countByStatus["COMPLETED"] ?? 0} />
         </div>
@@ -125,23 +134,35 @@ export default async function ProfilePage() {
               {recentSessions.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
+                  className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
                 >
-                  <div className="min-w-0">
+                  {/* Cover thumbnail — same size as the recently completed section */}
+                  <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded">
+                    {s.userGame.game.coverUrl ? (
+                      <Image src={s.userGame.game.coverUrl} alt={s.userGame.game.title} fill className="object-cover" sizes="32px" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-zinc-700 text-sm">🎮</div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-white">
                       {s.userGame.game.title}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {/* toLocaleDateString formats the date nicely for the user's locale */}
                       {new Date(s.date).toLocaleDateString()}
                     </p>
                     {s.notes && (
                       <p className="mt-0.5 truncate text-xs text-zinc-400">{s.notes}</p>
                     )}
                   </div>
-                  <span className="ml-4 shrink-0 text-sm font-semibold text-violet-400">
-                    {s.hoursPlayed}h
-                  </span>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-sm font-semibold text-violet-400">
+                      {formatPlayTime(s.hoursPlayed)}
+                    </span>
+                    <DeleteSessionButton sessionId={s.id} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -183,18 +204,52 @@ export default async function ProfilePage() {
         </section>
 
       </div>
+
+      {/* Reviews */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+          My Reviews
+        </h2>
+        {reviews.length === 0 ? (
+          <p className="text-sm text-zinc-500">No reviews written yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {reviews.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-white">
+                      {r.userGame.game.title}
+                    </p>
+                    <p className="mt-1 text-sm text-zinc-300">{r.body}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {/* Score badge */}
+                  <div className="shrink-0 rounded-lg bg-violet-600 px-2.5 py-1 text-center">
+                    <p className="text-lg font-bold leading-none text-white">{r.score}</p>
+                    <p className="text-xs text-violet-200">/10</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
     </div>
   );
 }
 
 // Small reusable stat card — defined in the same file since it's only used here.
-function StatCard({ label, value, unit }: { label: string; value: number; unit?: string }) {
+function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <p className="text-2xl font-bold text-white">
-        {value}
-        {unit && <span className="ml-1 text-base font-normal text-zinc-400">{unit}</span>}
-      </p>
+      <p className="text-2xl font-bold text-white">{value}</p>
       <p className="mt-1 text-xs text-zinc-500">{label}</p>
     </div>
   );

@@ -12,7 +12,7 @@
 import { useState } from "react";
 import GameCard from "./GameCard";
 import AddGameModal from "./AddGameModal";
-import type { GameStatus, UserGameWithGame } from "@/lib/types";
+import type { GameStatus, Review, UserGameWithGame } from "@/lib/types";
 
 const COLUMNS: { status: GameStatus; label: string; emoji: string }[] = [
   { status: "PLAYING",   label: "Playing",   emoji: "🎮" },
@@ -43,6 +43,12 @@ export default function BacklogBoard({ initialGames }: Props) {
 
   function handleRemove(id: string) {
     setGames((prev) => prev.filter((g) => g.id !== id));
+  }
+
+  function handleReviewChange(id: string, review: Review | null) {
+    setGames((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, review } : g))
+    );
   }
 
   const droppedGames = games.filter((g) => g.status === "DROPPED");
@@ -80,6 +86,7 @@ export default function BacklogBoard({ initialGames }: Props) {
                         userGame={userGame}
                         onStatusChange={handleStatusChange}
                         onRemove={handleRemove}
+                        onReviewChange={handleReviewChange}
                       />
                     </li>
                   ))}
@@ -130,6 +137,7 @@ export default function BacklogBoard({ initialGames }: Props) {
                   userGame={userGame}
                   onStatusChange={handleStatusChange}
                   onRemove={handleRemove}
+                  onReviewChange={handleReviewChange}
                 />
               ))}
             </div>

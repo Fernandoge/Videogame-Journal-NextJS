@@ -4,9 +4,11 @@
 // It's a Client Component because it has interactive buttons (status change, delete).
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import type { GameStatus, UserGameWithGame } from "@/lib/types";
+import type { GameStatus, Review, UserGameWithGame } from "@/lib/types";
 import LogSessionModal from "./LogSessionModal";
+import ReviewModal from "./ReviewModal";
 
 const STATUS_LABELS: Record<GameStatus, string> = {
   PLAYING:   "Playing",
@@ -22,11 +24,13 @@ type Props = {
   userGame: UserGameWithGame;
   onStatusChange: (id: string, status: GameStatus) => void;
   onRemove: (id: string) => void;
+  onReviewChange: (id: string, review: Review | null) => void;
 };
 
-export default function GameCard({ userGame, onStatusChange, onRemove }: Props) {
-  const { game, status, id } = userGame;
-  const [isUpdating, setIsUpdating] = useState(false);
+export default function GameCard({ userGame, onStatusChange, onRemove, onReviewChange }: Props) {
+  const { game, status, id, review } = userGame;
+  const [isUpdating, setIsUpdating]       = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
 
   async function handleStatusChange(newStatus: GameStatus) {
     if (newStatus === status) return;
@@ -46,6 +50,7 @@ export default function GameCard({ userGame, onStatusChange, onRemove }: Props) 
   }
 
   async function handleRemove() {
+    setShowConfirm(false);
     setIsUpdating(true);
     const res = await fetch(`/api/user-games/${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -55,6 +60,40 @@ export default function GameCard({ userGame, onStatusChange, onRemove }: Props) 
   }
 
   return (
+    <>
+    {/* Confirmation modal */}
+    {showConfirm && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+        onClick={() => setShowConfirm(false)}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 className="text-base font-semibold text-white">Remove from backlog?</h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            <span className="font-medium text-white">{game.title}</span> and all its data —
+            play sessions and your review — will be permanently deleted.
+          </p>
+          <div className="mt-5 flex gap-3">
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="flex-1 rounded-lg border border-zinc-700 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRemove}
+              className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+            >
+              Yes, delete everything
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className={`rounded-lg border border-zinc-700 bg-zinc-800 p-3 transition-opacity ${isUpdating ? "opacity-50" : ""}`}>
       <div className="flex gap-3">
         {/* Cover art */}
@@ -76,9 +115,14 @@ export default function GameCard({ userGame, onStatusChange, onRemove }: Props) 
           )}
         </div>
 
-        {/* Info */}
+        {/* Info — title links to the detail page */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">{game.title}</p>
+          <Link
+            href={`/games/${id}`}
+            className="block truncate text-sm font-medium text-white hover:text-violet-400 transition-colors"
+          >
+            {game.title}
+          </Link>
           {game.genre && (
             <p className="truncate text-xs text-zinc-400">{game.genre}</p>
           )}
@@ -108,9 +152,18 @@ export default function GameCard({ userGame, onStatusChange, onRemove }: Props) 
           {/* Log session button — opens the LogSessionModal */}
           <LogSessionModal userGameId={id} gameTitle={game.title} />
 
-          {/* Remove button */}
+          {/* Review button — opens ReviewModal; shows score if a review exists */}
+          <ReviewModal
+            userGameId={id}
+            gameTitle={game.title}
+            existingReview={review}
+            onReviewSaved={(saved) => onReviewChange(id, saved)}
+            onReviewDeleted={() => onReviewChange(id, null)}
+          />
+
+          {/* Remove button — opens the confirmation modal */}
           <button
-            onClick={handleRemove}
+            onClick={() => setShowConfirm(true)}
             disabled={isUpdating}
             title="Remove from backlog"
             className="rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-700 hover:text-red-400 disabled:cursor-not-allowed"
@@ -120,5 +173,6 @@ export default function GameCard({ userGame, onStatusChange, onRemove }: Props) 
         </div>
       </div>
     </div>
+    </>
   );
 }

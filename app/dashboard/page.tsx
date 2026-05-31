@@ -18,19 +18,22 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin");
 
-  // Fetch this user's full backlog with the related game data in one query.
+  // Fetch this user's full backlog with the related game and review data.
   const rawGames = await db.userGame.findMany({
     where:   { userId: session.user.id },
-    include: { game: true },
+    include: { game: true, review: true },
     orderBy: { addedAt: "desc" },
   });
 
   // Prisma returns Date objects; JSON serialisation converts them to strings.
   // We do the conversion explicitly here so TypeScript is happy with our
-  // UserGameWithGame type (which uses string for addedAt).
+  // UserGameWithGame type (which uses string for dates).
   const games: UserGameWithGame[] = rawGames.map((ug) => ({
     ...ug,
     addedAt: ug.addedAt.toISOString(),
+    review: ug.review
+      ? { ...ug.review, createdAt: ug.review.createdAt.toISOString() }
+      : null,
   }));
 
   return <BacklogBoard initialGames={games} />;

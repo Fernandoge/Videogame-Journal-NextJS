@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         gameId: game.id,
         status,
       },
-      include: { game: true },
+      include: { game: true, review: true },
     });
 
     return Response.json({ data: userGame, error: null }, { status: 201 });

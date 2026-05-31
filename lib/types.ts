@@ -15,6 +15,14 @@ export type Game = {
   releaseYear: number | null;
 };
 
+export type Review = {
+  id: string;
+  userGameId: string;
+  score: number;
+  body: string;
+  createdAt: string; // serialised as a string when sent over the network via JSON
+};
+
 // A backlog entry — one game on one user's list.
 export type UserGameWithGame = {
   id: string;
@@ -23,4 +31,5 @@ export type UserGameWithGame = {
   status: GameStatus;
   addedAt: string; // serialised as a string when sent over the network via JSON
   game: Game;
+  review: Review | null;
 };
