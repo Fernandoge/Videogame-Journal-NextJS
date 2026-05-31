@@ -557,14 +557,14 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Why:* the runner + a real browser are the bedrock; dev-only, never ships to Vercel.
   - *Order:* everything imports `@playwright/test`; nothing can precede it.
 
-- [ ] **Step 2 — Minimal `playwright.config.ts`.**
+- [x] **Step 2 — Minimal `playwright.config.ts`.** ✅ Done.
   - *What:* `testDir`, `baseURL`, `webServer`, one chromium project, `trace:
     "on-first-retry"`, CI-only retries. **No auth project yet.**
   - *Why:* enables relative `page.goto("/")` and auto-boots the app for the run.
   - *Order:* config is read before any test; the smoke test needs it. Minimal = fewer
     parts to debug on the first run.
 
-- [ ] **Step 3 — One smoke test (the walking skeleton).**
+- [x] **Step 3 — One smoke test (the walking skeleton).** ✅ Done — 2 tests passing.
   - *What:* landing page `/` — hero heading visible, "Get started" links to `/signin`.
   - *Why:* proves install → config → webServer → browser → assertion with the least logic.
   - *Order:* a public page isolates *infra* problems from *test* problems. Fail fast,
