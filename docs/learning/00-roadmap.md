@@ -21,6 +21,7 @@ can jump into at any point.
 | 7 | [API routes](./07-api-routes.md) | Route handlers, HTTP methods, Zod validation |
 | 8 | [Authentication](./08-authentication.md) | OAuth, JWT sessions, route protection |
 | 9 | [Prisma and databases](./09-prisma-and-databases.md) | ORM, schema, queries, relations, migrations |
+| 10 | [Testing with Playwright](./10-playwright-testing.md) | E2E tests, Page/Component Object Model, locators, what to avoid |
 
 ---
 
