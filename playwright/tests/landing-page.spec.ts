@@ -13,6 +13,12 @@
 
 import { test, expect } from "@playwright/test";
 
+// The landing page only exists for logged-OUT visitors: a signed-in user is
+// redirected straight to /dashboard (see app/page.tsx's `if (session) redirect`).
+// Since Step 6 the chromium project DEFAULTS to a logged-in session, so we clear it
+// here to actually reach the public page. (Same opt-out as auth.spec's redirect block.)
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test.describe("Landing page", () => {
   test("shows the hero and a Get started CTA linking to /signin", async ({ page }) => {
     // baseURL (from the config) means "/" resolves to http://localhost:3000/.

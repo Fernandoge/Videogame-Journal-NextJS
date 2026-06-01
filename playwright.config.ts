@@ -6,11 +6,20 @@
 //   3. Who starts the app for them?    → webServer
 //   4. What browser(s) do they use?    → projects
 //
-// We keep it deliberately MINIMAL for now (Step 2 of the build plan in
-// docs/learning/10-playwright-testing.md). No auth project yet — that arrives in
-// Step 6. Fewer moving parts means an easier first run to debug.
+// Step 6 added the auth layer: a `setup` project mints a logged-in session once,
+// and the chromium project defaults every test to that session via `storageState`
+// (see docs/learning/10-playwright-testing.md).
 
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import { STORAGE_STATE } from "./playwright/fixtures/test-user";
+
+// Load the TEST environment (kept separate from your real .env) BEFORE building the
+// config below. This runs in Playwright's main process, so the values land in
+// process.env — inherited by the test workers (auth.setup.ts reads AUTH_SECRET) and
+// injected into the app we boot (webServer.env), so the cookie our setup signs and
+// the cookie the app decrypts use the SAME AUTH_SECRET.
+dotenv.config({ path: ".env.test" });
 
 export default defineConfig({
   // All spec files live here. Keeping tests out of /app and /components keeps the
@@ -43,10 +52,24 @@ export default defineConfig({
     trace: "on-first-retry",
   },
 
-  // For now just Chromium. We can add firefox/webkit projects later by copying
-  // this entry — the tests don't change.
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Runs FIRST. Mints the session cookie and writes it to STORAGE_STATE. It's a
+    // separate "project" (not a beforeEach) so the work happens once per run, and so
+    // other projects can `depend on` it. Matched by filename, not the *.spec pattern.
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // DEFAULT every test to the logged-in session minted by `setup`. Public /
+        // logged-out specs (landing-page, and the redirect block in auth.spec) opt
+        // OUT with `test.use({ storageState: { cookies: [], origins: [] } })`.
+        storageState: STORAGE_STATE,
+      },
+      // Don't run chromium tests until the cookie file exists.
+      dependencies: ["setup"],
+    },
   ],
 
   // Playwright starts the app itself before the run, so you never babysit a
@@ -60,5 +83,12 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     // `next dev`'s first compile can be slow; give it room before giving up.
     timeout: 120_000,
+    // Boot the app with the TEST secret so it agrees with what auth.setup.ts signs.
+    // Next.js only auto-loads .env.test when NODE_ENV=test, and `next dev` forces
+    // development — so we pass it explicitly here. (Injected vars win over .env; the
+    // rest of the app's config, incl. DATABASE_URL, still comes from .env for now.)
+    env: {
+      AUTH_SECRET: process.env.AUTH_SECRET!,
+    },
   },
 });

@@ -584,10 +584,19 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Order:* deliberately *before* the auth fixture — they test the logged-**out**
     state. Bank the cheap, real tests first.
 
-- [ ] **Step 6 — Auth fixture (the `storageState` setup project).**
-  - *What:* `auth.setup.ts` + `.env.test`; ensure a test user, mint the NextAuth
-    session JWT cookie, save to `playwright/.auth/user.json`; wire the `setup`
-    project + `storageState` into config.
+- [x] **Step 6 — Auth fixture (the `storageState` setup project).** ✅ Done — mint the
+      Auth.js JWT cookie with `next-auth/jwt` `encode()`; logged-in `auth.spec` tests green.
+  - *What:* `auth.setup.ts` + `.env.test`; define the test-user IDENTITY (a shared
+    constant in `playwright/fixtures/test-user.ts`), mint the NextAuth session JWT
+    cookie for it, save to `playwright/.auth/user.json`; wire the `setup` project +
+    `storageState` into config. The matching **DB row is deferred to Step 9** — the
+    cookie alone is enough for the redirect tests this unblocks (`/` and `/signin`
+    only check `if (session)`; `/dashboard` queries an unknown id → no rows).
+  - *Key mechanic:* the session is a stateless **encrypted** JWT (auth.ts uses
+    `strategy: "jwt"`). We sign the cookie with the **same `AUTH_SECRET`** the app
+    uses and the right salt (`authjs.session-token`, the cookie name on http), so the
+    app decrypts it like any real request. `.env.test`'s `AUTH_SECRET` is injected
+    into the booted app via `webServer.env`, guaranteeing both sides match.
   - *Why:* Google's screen can't be automated; log in once, reuse everywhere (speed).
   - *Order:* the gate to all authed tests and the most error-prone piece — done only
     after the pipeline is proven (3) and the no-auth tests are banked (5).

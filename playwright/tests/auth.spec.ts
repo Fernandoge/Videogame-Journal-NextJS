@@ -1,20 +1,21 @@
-// auth.spec.ts — authentication boundaries (Step 5).
+// auth.spec.ts — authentication boundaries (Steps 5 + 6).
 //
-// These are real, runnable tests (not todos) because they need ZERO setup:
-// no login, no database. They verify that the protected pages bounce a
-// logged-OUT visitor to /signin — server-side redirects from each page's
-// `if (!session) redirect("/signin")` guard.
+// Two halves, both real and runnable:
+//   1. Logged-OUT: protected pages bounce a visitor to /signin (each page's
+//      `if (!session) redirect("/signin")` guard). Needs no setup at all.
+//   2. Logged-IN: a signed-in user is pushed OFF the public/auth pages to
+//      /dashboard. This is what the Step 6 auth fixture unblocks.
 //
-// Because these test the logged-OUT state, they must run WITHOUT any saved
-// session. We force a clean, empty storage state below. Right now nothing sets a
-// default anyway, but once Step 6 attaches a logged-in storageState to the
-// chromium project, this line keeps THESE tests logged out regardless.
+// The two halves need OPPOSITE auth states, so each `describe` sets its own
+// `storageState` (overriding the chromium project's logged-in default).
 
 import { test, expect } from "@playwright/test";
 
-test.use({ storageState: { cookies: [], origins: [] } });
-
 test.describe("Protected routes redirect when logged out", () => {
+  // Opt OUT of the project's default logged-in session: an EMPTY storage state, so
+  // these tests run with no cookie and exercise the unauthenticated path.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   // The three guarded routes. We use the same assertion for each, so we generate
   // one test per route in a loop — this is parametrisation at collection time,
   // not runtime branching, so each still reports as its own independent test.
@@ -34,9 +35,20 @@ test.describe("Protected routes redirect when logged out", () => {
       ).toBeVisible();
     });
   }
+});
 
-  // These need a logged-IN session, which arrives with the auth fixture in Step 6.
-  // test.fixme = planned/not-yet-implemented (Playwright has no test.todo).
-  test.fixme("a signed-in user visiting /signin is sent to /dashboard", () => {});
-  test.fixme("a signed-in user visiting / is sent to /dashboard", () => {});
+test.describe("Signed-in users skip the public and sign-in pages", () => {
+  // No `test.use` here: these INHERIT the chromium project's default logged-in
+  // storageState (the cookie minted by auth.setup.ts). Reaching /dashboard at all
+  // proves the cookie decrypted into a valid `session.user.id` — an unauthenticated
+  // visitor would have been redirected to /signin instead.
+  test("a signed-in user visiting /signin is sent to /dashboard", async ({ page }) => {
+    await page.goto("/signin");
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("a signed-in user visiting / is sent to /dashboard", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
 });
