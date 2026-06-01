@@ -58,6 +58,17 @@ export default defineConfig({
     // other projects can `depend on` it. Matched by filename, not the *.spec pattern.
     { name: "setup", testMatch: /auth\.setup\.ts/ },
 
+    // Runs SECOND (needs the cookie). Pre-compiles every route once, serially, so
+    // `next dev`'s on-demand first-compile never happens under parallel load — which
+    // otherwise flakes hydrated-control clicks AND throws transient SSR 500s. See
+    // warmup.setup.ts.
+    {
+      name: "warmup",
+      testMatch: /warmup\.setup\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+    },
+
     {
       name: "chromium",
       use: {
@@ -67,8 +78,8 @@ export default defineConfig({
         // OUT with `test.use({ storageState: { cookies: [], origins: [] } })`.
         storageState: STORAGE_STATE,
       },
-      // Don't run chromium tests until the cookie file exists.
-      dependencies: ["setup"],
+      // Wait for both the cookie (setup) and the warm route cache (warmup).
+      dependencies: ["warmup"],
     },
   ],
 

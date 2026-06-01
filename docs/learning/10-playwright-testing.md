@@ -615,8 +615,19 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Order:* meaningful only once login works (6); just-in-time avoids inventing
     abstractions for tests that don't exist yet.
 
-- [ ] **Step 8 — RAWG network-mock helper.**
-  - *What:* a fixture doing `page.route("**/api/games/search**", …)` with fixed results.
+- [x] **Step 8 — RAWG search mock + first component object.** ✅ Done — `mockGameSearch`
+      fixture, `AddGameModal` (first COM), `DashboardPage.openAddGame()`; 7 add-game
+      cases green. The Add→Backlog case writes to the DB, so it stays `fixme` for Step 9.
+  - *What:* `playwright/fixtures/rawg.ts` does `page.route("**/api/games/search**", …)`
+    returning a fixed `{ data, error }` body (default `SAMPLE_GAMES`; pass `[]` to hit
+    the "No games found." empty state). We mock the BOUNDARY and test the results UI.
+  - *Dev-server flake fixed here (important):* the modal is in a Client Component, and
+    under parallel load `next dev` bit us twice — (a) clicks landed on the "+ Add game"
+    button *before hydration* attached its handler (a no-op), and (b) concurrent route
+    compilation threw transient `TypeError: …reading 'useContext'` SSR 500s, even on a
+    warm route. Fixes: a **`warmup` setup project** that compiles every route once,
+    serially, in both auth states, **plus `expect(...).toPass()`** around the modal
+    open for the residual handler-attach window. Cold runs (`rm -rf .next`) now green.
   - *Why:* a fast, offline, deterministic add-game flow.
   - *Order:* only the add-game spec needs it; build it right before that spec.
 
