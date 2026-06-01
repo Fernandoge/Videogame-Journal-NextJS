@@ -601,9 +601,16 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Order:* the gate to all authed tests and the most error-prone piece — done only
     after the pipeline is proven (3) and the no-auth tests are banked (5).
 
-- [ ] **Step 7 — POM + COM layer.**
-  - *What:* `BasePage` → page classes → component classes, built incrementally as the
-    first spec needs each (not all speculatively up front).
+- [x] **Step 7 — POM foundation.** ✅ Done — `BasePage` + `DashboardPage`; the three
+      data-free dashboard tests (columns render, empty-state placeholder, Dropped
+      archive hidden) green against the real empty board.
+  - *What:* `BasePage` (holds `page`, knows its `path`, `goto()`) → page classes →
+    component classes, built incrementally as the first spec needs each (not all
+    speculatively up front). Pages take a `Page`; components take a `Locator`.
+  - *Note:* the COMPONENT objects (`GameCard`, `BacklogColumn`) are deferred to
+    Step 9 on purpose — an empty board has no cards/columns-with-content to scope, so
+    building them now would be abstractions for tests that don't exist yet. The
+    dashboard's data-free cases land here; its data-hungry cases stay `fixme` for 9.
   - *Why:* the reusable "how to interact" layer the feature specs compose.
   - *Order:* meaningful only once login works (6); just-in-time avoids inventing
     abstractions for tests that don't exist yet.
