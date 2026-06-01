@@ -527,8 +527,10 @@ One spec file per feature, each a focused set of cases:
 | `game-detail.spec.ts` | Back link, hero info, status select, stats row, sessions list + empty state, delete session, review section + empty state, 404 on bad id |
 | `profile.spec.ts` | Name/email, four stat cards, status breakdown, recent sessions, recently completed, reviews, empty states |
 
-We'll stub these with `test.todo()` first — they show up in the report as planned
-work and lock in the structure, then we fill in bodies one at a time.
+We'll stub these with `test.fixme(title, body)` first — they show up in the report
+as planned (skipped) work and lock in the structure, then we fill in bodies one at
+a time. (Playwright has **no** `test.todo` — that's a Jest/Vitest API. `test.fixme`
+is the equivalent: it declares the test and skips its body.)
 
 ---
 
@@ -570,12 +572,13 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Order:* a public page isolates *infra* problems from *test* problems. Fail fast,
     cheaply. **← we pause here to confirm the pipeline goes green.**
 
-- [ ] **Step 4 — `test.todo()` skeletons for every spec.**
-  - *What:* create all spec files from the table above, bodies as `test.todo(...)`.
+- [x] **Step 4 — `test.fixme()` skeletons for every spec.** ✅ Done — 50 planned tests.
+  - *What:* create all spec files from the table above, bodies as `test.fixme(title, () => {})`.
+    (Playwright has no `test.todo`; `test.fixme` declares the test and skips its body.)
   - *Why:* locks structure/naming; the report shows the whole plan as planned work.
   - *Order:* free once the runner is green; gives a map for everything after.
 
-- [ ] **Step 5 — Unauthenticated specs (`auth.spec.ts`).**
+- [x] **Step 5 — Unauthenticated specs (`auth.spec.ts`).** ✅ Done — 3 redirect tests passing.
   - *What:* logged-out `/dashboard`, `/profile`, `/games/*` → redirect to `/signin`.
   - *Why:* highest value-to-cost; needs zero infrastructure (no login, no data).
   - *Order:* deliberately *before* the auth fixture — they test the logged-**out**

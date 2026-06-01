@@ -44,4 +44,8 @@ test.describe("Landing page", () => {
       page.getByRole("heading", { name: /welcome back/i })
     ).toBeVisible();
   });
+
+  // Planned: assert the three feature cards (Backlog board / Session logger / Reviews).
+  // test.fixme = planned/not-yet-implemented (Playwright has no test.todo).
+  test.fixme("renders the three feature cards", () => {});
 });
