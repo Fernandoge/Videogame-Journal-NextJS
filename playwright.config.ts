@@ -37,6 +37,17 @@ export default defineConfig({
   // Retry flaky tests on CI only. Locally, a flake is a bug to fix — not to hide.
   retries: process.env.CI ? 2 : 0,
 
+  // Runs once before everything: ensures the test user's DB row exists and wipes any
+  // leftover backlog data, so data specs (Step 9) start from a clean slate.
+  globalSetup: "./playwright/global-setup.ts",
+
+  // One worker = tests run serially. The data specs (Step 9) all seed rows for the
+  // SAME test user, and the dashboard/profile pages aggregate ALL of that user's data
+  // — so two data tests running at once would clobber each other's board. Serial
+  // execution is the simplest correct isolation. (The parallel alternative, one user
+  // per worker, is described in docs/learning/10-playwright-testing.md.)
+  workers: 1,
+
   // "list" prints live progress in the terminal; "html" writes a rich report.
   // open: "never" stops it from auto-launching a browser tab after the run, which
   // would hang a non-interactive/CI environment.

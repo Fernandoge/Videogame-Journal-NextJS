@@ -116,6 +116,10 @@ export default function LogSessionModal({ userGameId, gameTitle, onSessionLogged
                   Time played <span className="text-red-400">*</span>
                 </label>
                 <div className="flex gap-2">
+                  {/* Both inputs share placeholder="0" and have no <label>, so on
+                      their own a screen reader announces two identical "0" fields.
+                      aria-label gives each a distinct accessible name — a real
+                      accessibility fix that also lets tests target them by label. */}
                   <div className="flex flex-1 items-center gap-1">
                     <input
                       type="number"
@@ -123,6 +127,7 @@ export default function LogSessionModal({ userGameId, gameTitle, onSessionLogged
                       max="24"
                       step="1"
                       placeholder="0"
+                      aria-label="Hours"
                       value={hours}
                       onChange={(e) => setHours(e.target.value)}
                       className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
@@ -137,6 +142,7 @@ export default function LogSessionModal({ userGameId, gameTitle, onSessionLogged
                       max="59"
                       step="1"
                       placeholder="0"
+                      aria-label="Minutes"
                       value={minutes}
                       onChange={(e) => setMinutes(e.target.value)}
                       className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"

@@ -35,9 +35,16 @@ export class AddGameModal {
   }
 
   // One result row by game title, e.g. result("Hades"). Returns a locator for the
-  // spec to assert on, or to drill into (its Add button) in Step 9.
+  // spec to assert on, or to drill into (its Add button).
   result(name: string): Locator {
     return this.results.filter({ hasText: name });
+  }
+
+  // Click "Add" on the named result. On success the component POSTs to
+  // /api/user-games, tells the board, and closes the modal — so the spec then asserts
+  // the new card appeared (and that the modal is gone).
+  async addResult(name: string): Promise<void> {
+    await this.result(name).getByRole("button", { name: "Add", exact: true }).click();
   }
 
   // Type a query and run the search via the button. Auto-waiting handles the rest;

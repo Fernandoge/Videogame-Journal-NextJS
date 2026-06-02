@@ -28,9 +28,11 @@ export type RawgGameStub = {
 // Ready-made results so specs don't re-declare the shape. background_image is null
 // on purpose — a real URL would make next/image attempt an actual network fetch,
 // reintroducing exactly the flakiness we're mocking away.
+// ids are in a reserved 900_000_000+ range (like the DB seeder) so that when a test
+// actually ADDS one of these, the Game row it creates can't collide with a real RAWG id.
 export const SAMPLE_GAMES: RawgGameStub[] = [
-  { id: 1, name: "Hades", genres: [{ name: "Indie" }], released: "2020-09-17", background_image: null },
-  { id: 2, name: "Celeste", genres: [{ name: "Platformer" }], released: "2018-01-25", background_image: null },
+  { id: 900_000_001, name: "Hades", genres: [{ name: "Indie" }], released: "2020-09-17", background_image: null },
+  { id: 900_000_002, name: "Celeste", genres: [{ name: "Platformer" }], released: "2018-01-25", background_image: null },
 ];
 
 // Intercept /api/games/search and reply with `games` (default: SAMPLE_GAMES). Pass

@@ -22,6 +22,7 @@ can jump into at any point.
 | 8 | [Authentication](./08-authentication.md) | OAuth, JWT sessions, route protection |
 | 9 | [Prisma and databases](./09-prisma-and-databases.md) | ORM, schema, queries, relations, migrations |
 | 10 | [Testing with Playwright](./10-playwright-testing.md) | E2E tests, Page/Component Object Model, locators, what to avoid |
+| 11 | [Playwright — deep dive](./11-playwright-deep-dive.md) | How it works underneath, the API fundamentals, the feature tour (trace viewer, UI mode, codegen), hands-on exercises |
 
 ---
 

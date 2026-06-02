@@ -67,7 +67,16 @@ export default function BacklogBoard({ initialGames }: Props) {
           const columnGames = games.filter((g) => g.status === status);
 
           return (
-            <div key={status} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+            // role="region" + aria-label make each column a named landmark: a
+            // screen-reader user can jump straight to "Backlog", and our E2E tests can
+            // scope to one column with getByRole("region", { name: label }). This is a
+            // real accessibility improvement, not a test-only hook.
+            <div
+              key={status}
+              role="region"
+              aria-label={label}
+              className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
+            >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 font-semibold text-white">
                   <span>{emoji}</span>

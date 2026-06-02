@@ -10,6 +10,7 @@
 import { expect, type Page, type Locator } from "@playwright/test";
 import { BasePage } from "./BasePage";
 import { AddGameModal } from "../components/AddGameModal";
+import { BacklogColumn } from "../components/BacklogColumn";
 
 export class DashboardPage extends BasePage {
   readonly path = "/dashboard";
@@ -24,6 +25,10 @@ export class DashboardPage extends BasePage {
   // what the "hides the archive" test asserts.
   readonly droppedToggle: Locator;
 
+  // The footer line, e.g. "2 active games" — only rendered when the board is
+  // non-empty. Found by its text (rung 4), since it's a plain <p>.
+  readonly activeCount: Locator;
+
   // The board header's "+ Add game" button. The /add game/i name won't collide with
   // a result row's bare "Add" button (no "game"), so it's unambiguous.
   readonly addGameButton: Locator;
@@ -33,6 +38,7 @@ export class DashboardPage extends BasePage {
     this.emptyStates = page.getByText("No games here yet");
     this.droppedToggle = page.getByRole("button", { name: /dropped/i });
     this.addGameButton = page.getByRole("button", { name: /add game/i });
+    this.activeCount = page.getByText(/active game/);
   }
 
   // Open the Add-game modal and return its component object. A method that opens a
@@ -62,5 +68,21 @@ export class DashboardPage extends BasePage {
   // a locator for the spec to assert on — the page object never asserts itself.
   columnHeading(label: string): Locator {
     return this.page.getByRole("heading", { name: label, level: 2 });
+  }
+
+  // A column as a component object, scoped to its labelled region. label is one of
+  // "Playing" | "Backlog" | "Completed".
+  column(label: string): BacklogColumn {
+    return new BacklogColumn(this.page.getByRole("region", { name: label }));
+  }
+
+  // Expand the Dropped archive. Same hydration caveat as openAddGame: right after a
+  // page load the toggle can be clicked before React attaches its handler, so we
+  // retry until the section actually opens (the toggle's label flips to "Hide").
+  async expandDropped(): Promise<void> {
+    await expect(async () => {
+      await this.droppedToggle.click();
+      await expect(this.droppedToggle).toContainText(/hide/i, { timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
   }
 }

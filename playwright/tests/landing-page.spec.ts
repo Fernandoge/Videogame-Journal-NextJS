@@ -51,7 +51,13 @@ test.describe("Landing page", () => {
     ).toBeVisible();
   });
 
-  // Planned: assert the three feature cards (Backlog board / Session logger / Reviews).
-  // test.fixme = planned/not-yet-implemented (Playwright has no test.todo).
-  test.fixme("renders the three feature cards", () => {});
+  test("renders the three feature cards", async ({ page }) => {
+    await page.goto("/");
+
+    // Each feature card is titled with an <h3>, so role + accessible name reaches all
+    // three without depending on the grid's layout or styling.
+    await expect(page.getByRole("heading", { name: "Backlog board" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Session logger" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reviews" })).toBeVisible();
+  });
 });

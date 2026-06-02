@@ -631,13 +631,65 @@ Progress is tracked with the checkboxes below — tick them as each step lands.
   - *Why:* a fast, offline, deterministic add-game flow.
   - *Order:* only the add-game spec needs it; build it right before that spec.
 
-- [ ] **Step 9 — Data seeding + the data-dependent specs.**
+- [x] **Step 9 — Data seeding + the data-dependent specs.** ✅ Done — all nine specs are
+      now real (no `fixme`). Built in slices; the test DB seeds over the app's own HTTP API.
   - *What:* test-DB seeding (namespaced titles + cleanup), then `add-game` first, then
     `dashboard`, `game-card`, `log-session`, `review`, `game-detail`, `profile`.
   - *Why:* the richest tests — they need auth + POM + mocks + real DB rows; seeding is
     the heaviest infrastructure in the project.
   - *Order:* last (most dependencies). `add-game` leads the group because it creates its
     own data through the UI, bridging to the specs that need pre-existing data.
+  - **Seeding architecture (Slice 1, ✅):** seed/clean over the app's HTTP API
+    (`request` fixture carries the session cookie) — never import the ESM Prisma client
+    into tests. `playwright/global-setup.ts` ensures the test-user `User` row + wipes
+    leftovers via `prisma db execute` (raw SQL, no client). `playwright/fixtures/data.ts`
+    exports a `backlog` seeder (`addGame`/`setStatus`/`logSession`/`addReview`/`cleanAll`)
+    on a custom `test`; it auto-cleans before+after each test that uses it. Isolation =
+    **`workers: 1`** (serial): all data shares ONE test user and the dashboard/profile
+    aggregate it, so parallel tests would clobber each other's board. *Parallel upgrade
+    (future): one user per worker (`parallelIndex`) + per-worker minted cookie — keeps
+    full parallelism at the cost of more fixture machinery.*
+  - **Slice 2 ✅:** added `role="region"` + `aria-label` to each board column (a real
+    a11y landmark, and the column handle tests needed — so columns are in fact a SECOND
+    justified app-side hook beyond the LogSessionModal hrs/min one). Built `BacklogColumn`
+    (first `Locator`-scoped COM: `cards`/`emptyState`/`countBadge`/`card(title)`),
+    `DashboardPage.column()`/`expandDropped()`, `AddGameModal.addResult()`.
+    **dashboard.spec and add-game-modal.spec are now fully real (no `fixme`).**
+  - **Slice 3 ✅:** `GameCard` COM (scoped to a card's `<li>`: `titleLink`,
+    `statusSelect` combobox, `deleteButton` by `title`, confirm-modal locators;
+    `setStatus`/`openDeleteConfirm`). `BacklogColumn.card()` now returns a `GameCard`
+    (use `.root` for presence). **game-card.spec fully real.** Status-select + delete
+    clicks needed no hydration guard under `workers: 1` (no contention).
+  - **Slice 4 ✅:** added `aria-label="Hours"`/`"Minutes"` to the LogSessionModal time
+    inputs (resolving the one DOM-ambiguous spot the plan flagged — a real a11y fix, the
+    third justified app-side hook). `LogSessionModal` COM (singleton, `getByLabel`),
+    `GameCard.openLogSession()`. All 6 cases incl. validation + the auto-close (assert
+    success → modal hidden, no `waitForTimeout`). **log-session.spec fully real.**
+  - **Slice 5 ✅:** `ReviewModal` COM (singleton; score buttons by `name, exact:true`
+    so "1"≠"10"; `scoreLabel` uses `exact:true` so a label like "Good" doesn't collide
+    with a body containing "good" — `getByText` is substring + case-insensitive by
+    default). `GameCard.reviewButton` (title `/write a review|your review/`) +
+    `openReview()`. All 5 cases incl. edit-prefill + delete (seed the review via the API
+    first). **review.spec fully real.**
+  - **Slice 6 ✅:** `GameDetailPage` — the first page object with a DYNAMIC path (the
+    UserGame id is passed to the constructor, so the inherited `goto()` still works).
+    Stats/hero are plain `<p>`s found by exact text (`statLabel`/`statValue`/`metadata`),
+    the back link by role, the single status `<select>` by `combobox`, and sessions by
+    the bare `listitem` role (they're the only list on the page — the review is a `<div>`).
+    `setStatus()` wraps `selectOption` in `waitForResponse` for the PATCH: a reload right
+    after would otherwise *cancel* the in-flight request and read stale state — a real
+    condition to wait on, not a `waitForTimeout`. `deleteSession()` drives the two-step
+    🗑→"Sure?" button, both clicks scoped to the row. The 404 case asserts the navigation
+    response `status()` is 404 (the rare value-not-locator exception). **game-detail.spec
+    fully real.**
+  - **Slice 7 ✅:** `ProfilePage`. Two locator problems solved WITHOUT app-side hooks:
+    (a) the stat cards / breakdown cells are `<div><p>value</p><p>label</p></div>` with no
+    role tying value→label — we locate the card by its unique LABEL and assert the value it
+    *contains* (`stat(label)`/`breakdown(status)` via the label's parent), which also kills
+    the "bare number matches ten elements" strict-mode trap; (b) three separate `<ul>`s make
+    a bare `listitem` ambiguous, so each list is scoped to its `<section>` (a semantic
+    element) via the section's `<h2>`. Name/email come from the session JWT, so that test
+    seeds nothing. **profile.spec fully real.**
 
 ---
 
